@@ -2,10 +2,11 @@ services:
   - type: web
     name: wish-orbit
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:application
+    startCommand: gunicorn --bind 0.0.0.0:$PORT wsgi:application
     autoDeploy: true
+    healthCheckPath: /healthz
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -18,4 +19,4 @@ services:
 
 databases:
   - name: wish-orbit-db
-    plan: free
+    plan: basic-256mb
