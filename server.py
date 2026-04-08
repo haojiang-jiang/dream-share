@@ -23,6 +23,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
 PORT = int(os.environ.get("PORT", "5000"))
 DEBUG = os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes", "on"}
 SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "").lower() in {"1", "true", "yes", "on"}
+ENABLE_DEMO_ACCOUNTS = os.environ.get("ENABLE_DEMO_ACCOUNTS", "").lower() in {"1", "true", "yes", "on"} or DEBUG
 
 
 class Base(DeclarativeBase):
@@ -997,6 +998,9 @@ def translate_text(db: Session, text: str, source_language: str, target_language
 
 
 def demo_accounts() -> list[dict]:
+    if not ENABLE_DEMO_ACCOUNTS:
+        return []
+
     return [
         {"email": "voyager@wishorbit.app", "name": "Voyager", "passwordHint": DEMO_PASSWORD},
         {"email": "lina@wishorbit.app", "name": "Lina", "passwordHint": DEMO_PASSWORD},

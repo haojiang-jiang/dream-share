@@ -75,6 +75,7 @@ const STRINGS = {
     tabProfile: "我的",
     authTitle: "登录之后，你的愿望、匹配和聊天就会真正保存下来。",
     authText: "这里已经接上真实后端和数据库。你可以注册新账号，也可以先用演示账号体验完整流程。",
+    authTextNoDemo: "这里已经接上真实后端和数据库。注册后，你的愿望、匹配和聊天都会真实保存下来。",
     loginTab: "登录",
     registerTab: "注册",
     authNameLabel: "昵称",
@@ -252,6 +253,7 @@ const STRINGS = {
     tabProfile: "Profile",
     authTitle: "Once you sign in, your wishes, matches, and chats are saved for real.",
     authText: "This version already uses a real backend and database. Create a fresh account or try one of the seeded demo accounts.",
+    authTextNoDemo: "This version already uses a real backend and database. After you register, your wishes, matches, and chats will be saved for real.",
     loginTab: "Sign In",
     registerTab: "Register",
     authNameLabel: "Name",
@@ -1400,6 +1402,8 @@ function avatarInitials(name) {
 
 function renderDemoAccounts() {
   const accounts = state.data?.demoAccounts || [];
+  document.getElementById("authText").textContent = accounts.length ? t("authText") : t("authTextNoDemo");
+  ui.demoAccounts.classList.toggle("hidden", accounts.length === 0);
   ui.demoAccounts.innerHTML = accounts
     .map(
       (account) => `
