@@ -606,17 +606,40 @@ html[lang^="zh"] .discover-hero-title {
   grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
   gap: 20px;
   align-items: stretch;
+  height: var(--discover-stage-height);
 }
 
 .profile-summary,
 .profile-activity-panel {
   min-height: 0;
+  height: 100%;
 }
 
 .profile-summary {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(114, 196, 214, 0.34) transparent;
+}
+
+.profile-summary::-webkit-scrollbar,
+.profile-activity-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-summary::-webkit-scrollbar-track,
+.profile-activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile-summary::-webkit-scrollbar-thumb,
+.profile-activity-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(114, 196, 214, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .profile-editor-form {
@@ -1940,6 +1963,11 @@ html[lang^="zh"] .wish-deck-card h3 {
   .profile-summary,
   .profile-activity-panel {
     min-height: auto;
+    height: auto;
+  }
+
+  .profile-workspace-grid {
+    height: auto;
   }
 
   .map-stats-grid {
