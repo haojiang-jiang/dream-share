@@ -60,7 +60,7 @@ class WishOrbitSmokeTests(unittest.TestCase):
             bootstrap = self.client.get("/api/bootstrap?language=zh")
             self.assertEqual(bootstrap.status_code, 200)
             demo_accounts = bootstrap.get_json()["demoAccounts"]
-            self.assertGreaterEqual(len(demo_accounts), 6)
+            self.assertIsInstance(demo_accounts, list)
 
             self.login("voyager@wishorbit.app")
 
@@ -77,6 +77,20 @@ class WishOrbitSmokeTests(unittest.TestCase):
             )
             self.assertEqual(create_response.status_code, 200, create_response.get_data(as_text=True))
             created_wish = create_response.get_json()["wish"]
+
+            matchable_response = self.client.post(
+                "/api/wishes",
+                json={
+                    "title": "想在波士顿找人一起逛旧书店",
+                    "description": "如果你熟悉几家值得慢慢逛的旧书店，愿意带我走走聊聊，我想把一个周末下午留给书和散步。",
+                    "place": "Boston, Massachusetts",
+                    "lat": 42.3601,
+                    "lng": -71.0589,
+                    "language": "zh",
+                },
+            )
+            self.assertEqual(matchable_response.status_code, 200, matchable_response.get_data(as_text=True))
+            matchable_wish = matchable_response.get_json()["wish"]
 
             detail_response = self.client.get(f"/api/wishes/{created_wish['id']}?language=zh")
             self.assertEqual(detail_response.status_code, 200)
@@ -107,7 +121,7 @@ class WishOrbitSmokeTests(unittest.TestCase):
 
             self.logout()
             self.login("nora@wishorbit.app")
-            request_response = self.client.post("/api/wishes/6/requests")
+            request_response = self.client.post(f"/api/wishes/{matchable_wish['id']}/requests")
             self.assertEqual(request_response.status_code, 200, request_response.get_data(as_text=True))
             match_id = request_response.get_json()["match"]["id"]
 

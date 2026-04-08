@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory, session
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, create_engine, func, or_, select
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, create_engine, func, inspect, or_, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, selectinload, sessionmaker
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -24,6 +24,10 @@ PORT = int(os.environ.get("PORT", "5000"))
 DEBUG = os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes", "on"}
 SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "").lower() in {"1", "true", "yes", "on"}
 ENABLE_DEMO_ACCOUNTS = os.environ.get("ENABLE_DEMO_ACCOUNTS", "").lower() in {"1", "true", "yes", "on"} or DEBUG
+ADMIN_EMAIL = (os.environ.get("ADMIN_EMAIL") or "").strip().lower()
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or ""
+ADMIN_NAME = (os.environ.get("ADMIN_NAME") or "Wish Orbit Curator").strip() or "Wish Orbit Curator"
+SEED_OWNER_FALLBACK_EMAIL = "__seed_owner@wishorbit.app"
 
 
 class Base(DeclarativeBase):
@@ -57,6 +61,7 @@ class Wish(Base):
     place: Mapped[str] = mapped_column(String(120))
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
+    owner_alias: Mapped[str | None] = mapped_column(String(80), nullable=True)
     original_language: Mapped[str] = mapped_column(String(8), default="zh")
     status: Mapped[str] = mapped_column(String(24), default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
@@ -747,6 +752,10 @@ def serialize_user(user: User | None) -> dict | None:
     }
 
 
+def visible_owner_name(wish: Wish) -> str:
+    return wish.owner_alias or wish.owner.name
+
+
 def serialize_wish(db: Session, wish: Wish, viewer_id: int | None, language: str, include_requests: bool = False) -> dict:
     owner = wish.owner
     translated_title = None
@@ -783,7 +792,7 @@ def serialize_wish(db: Session, wish: Wish, viewer_id: int | None, language: str
 
     return {
         "id": wish.id,
-        "owner": {"id": owner.id, "name": owner.name},
+        "owner": {"id": owner.id, "name": visible_owner_name(wish)},
         "place": wish.place,
         "lat": wish.lat,
         "lng": wish.lng,
@@ -827,7 +836,7 @@ def serialize_match(db: Session, match: Match, viewer_id: int, language: str) ->
         "id": match.id,
         "status": match.status,
         "viewerRole": viewer_role,
-        "otherUser": {"id": other_user.id, "name": other_user.name},
+        "otherUser": {"id": other_user.id, "name": helper.name if viewer_id == owner.id else visible_owner_name(wish)},
         "wish": {
             "id": wish.id,
             "place": wish.place,
@@ -1011,10 +1020,207 @@ def demo_accounts() -> list[dict]:
     ]
 
 
-def create_seed_data(db: Session):
-    if db.scalar(select(func.count(User.id))):
-        return
+def ensure_user(
+    db: Session,
+    *,
+    name: str,
+    email: str,
+    password: str | None = None,
+    preferred_language: str = "zh",
+) -> User:
+    email = email.strip().lower()
+    user = db.scalar(select(User).where(User.email == email))
+    if user:
+        if password:
+            user.password_hash = generate_password_hash(password)
+        user.name = name
+        user.preferred_language = preferred_language
+        db.flush()
+        return user
 
+    user = User(
+        name=name,
+        email=email,
+        password_hash=generate_password_hash(password or secrets.token_urlsafe(24)),
+        preferred_language=preferred_language,
+    )
+    db.add(user)
+    db.flush()
+    return user
+
+
+def seed_wish_catalog() -> list[dict]:
+    us_places = [
+        ("Brooklyn, New York", 40.6782, -73.9442),
+        ("Manhattan, New York", 40.7831, -73.9712),
+        ("Cambridge, Massachusetts", 42.3736, -71.1097),
+        ("Boston, Massachusetts", 42.3601, -71.0589),
+        ("Providence, Rhode Island", 41.8240, -71.4128),
+        ("Philadelphia, Pennsylvania", 39.9526, -75.1652),
+        ("Princeton, New Jersey", 40.3573, -74.6672),
+        ("Washington, D.C.", 38.9072, -77.0369),
+        ("Richmond, Virginia", 37.5407, -77.4360),
+        ("Asheville, North Carolina", 35.5951, -82.5515),
+        ("Charleston, South Carolina", 32.7765, -79.9311),
+        ("Savannah, Georgia", 32.0809, -81.0912),
+        ("Miami, Florida", 25.7617, -80.1918),
+        ("New Orleans, Louisiana", 29.9511, -90.0715),
+        ("Austin, Texas", 30.2672, -97.7431),
+        ("Houston, Texas", 29.7604, -95.3698),
+        ("Dallas, Texas", 32.7767, -96.7970),
+        ("Santa Fe, New Mexico", 35.6870, -105.9378),
+        ("Denver, Colorado", 39.7392, -104.9903),
+        ("Boulder, Colorado", 40.0150, -105.2705),
+        ("Phoenix, Arizona", 33.4484, -112.0740),
+        ("Sedona, Arizona", 34.8697, -111.7610),
+        ("Salt Lake City, Utah", 40.7608, -111.8910),
+        ("Boise, Idaho", 43.6150, -116.2023),
+        ("Portland, Oregon", 45.5152, -122.6784),
+        ("Seattle, Washington", 47.6062, -122.3321),
+        ("San Francisco, California", 37.7749, -122.4194),
+        ("Oakland, California", 37.8044, -122.2712),
+        ("San Jose, California", 37.3382, -121.8863),
+        ("Los Angeles, California", 34.0522, -118.2437),
+        ("San Diego, California", 32.7157, -117.1611),
+        ("Sacramento, California", 38.5816, -121.4944),
+        ("Minneapolis, Minnesota", 44.9778, -93.2650),
+        ("Chicago, Illinois", 41.8781, -87.6298),
+        ("Milwaukee, Wisconsin", 43.0389, -87.9065),
+        ("Detroit, Michigan", 42.3314, -83.0458),
+        ("Cleveland, Ohio", 41.4993, -81.6944),
+        ("Nashville, Tennessee", 36.1627, -86.7816),
+        ("Madison, Wisconsin", 43.0731, -89.4012),
+        ("Pittsburgh, Pennsylvania", 40.4406, -79.9959),
+    ]
+    world_places = [
+        ("Toronto, Canada", 43.6532, -79.3832),
+        ("Vancouver, Canada", 49.2827, -123.1207),
+        ("London, United Kingdom", 51.5072, -0.1276),
+        ("Lisbon, Portugal", 38.7223, -9.1393),
+        ("Copenhagen, Denmark", 55.6761, 12.5683),
+        ("Tokyo, Japan", 35.6762, 139.6503),
+        ("Seoul, South Korea", 37.5665, 126.9780),
+        ("Taipei, Taiwan", 25.0330, 121.5654),
+        ("Mexico City, Mexico", 19.4326, -99.1332),
+        ("Melbourne, Australia", -37.8136, 144.9631),
+    ]
+    aliases = [
+        "Maya", "Julian", "Sofia", "Leo", "Aria", "Noah", "Lena", "Kai", "Nina", "Owen",
+        "Ivy", "Miles", "Celine", "Ethan", "Mila", "Theo", "June", "Elias", "Zoe", "Adrian",
+    ]
+    activities = [
+        (
+            "想在{city}约一次清晨散步摄影",
+            "如果你熟悉这座城市清晨最安静的路线，愿意带我走一段路，顺便分享你最喜欢的街角，我想把这段光线和空气拍下来。",
+        ),
+        (
+            "想在{city}找到一间适合独处写字的咖啡馆",
+            "我想待半天，把一封一直没写完的信写完。如果你知道一间安静、不赶人的地方，愿意推荐给我就太好了。",
+        ),
+        (
+            "想在{city}参加一次小型电影交换夜",
+            "希望有人愿意一起策划一个十来人的胶片或影像分享夜，不用太正式，只要温柔、有趣、让人愿意留下来聊天。",
+        ),
+        (
+            "想在{city}练一次不尴尬的语言交换",
+            "我想找一个愿意慢慢聊天的人，边散步边交换语言，不用课程感太重，只要能自然地说起来就好。",
+        ),
+        (
+            "想在{city}找到一段适合夜跑的路线",
+            "如果你熟悉安全、灯光舒服、不会太拥挤的夜跑路线，愿意带我试一次，我想把运动这件事重新捡起来。",
+        ),
+        (
+            "想在{city}参加一次周末二手书交换",
+            "我最近想把一些读完的书带去和别人交换，也想听听大家为什么舍不得那一本到现在还留着的书。",
+        ),
+        (
+            "想在{city}做一次陌生人带路的城市散步",
+            "我想体验一次完全不查攻略的出门，只跟着另一个人熟悉的节奏走，看见平时不会走进去的小路和店铺。",
+        ),
+        (
+            "想在{city}找到可以一起逛菜市场的人",
+            "我想拍一点关于食物和日常的照片，也想听听本地人怎么买菜、挑水果，愿意陪我逛一小时就很好。",
+        ),
+        (
+            "想在{city}参加一场不太商业化的手作聚会",
+            "不一定要很专业，只是想和一群愿意把时间慢下来的人一起做点东西，哪怕只是坐着剪纸、写卡片也行。",
+        ),
+        (
+            "想在{city}找到一处可以看日落的高处",
+            "如果你知道一个不必人挤人的地方，愿意把它分享给我，我想在那里待到天色慢慢变暗。",
+        ),
+    ]
+    status_map = {
+        3: "matched",
+        6: "completed",
+        10: "matched",
+        14: "completed",
+        18: "matched",
+        22: "completed",
+        27: "matched",
+        31: "matched",
+        34: "completed",
+        38: "matched",
+        42: "completed",
+        46: "matched",
+        49: "completed",
+    }
+    pending_request_indexes = {5, 13, 20, 29, 37, 45}
+    helper_cycle = [
+        "voyager@wishorbit.app",
+        "lina@wishorbit.app",
+        "mateo@wishorbit.app",
+        "elsa@wishorbit.app",
+        "nora@wishorbit.app",
+        "youssef@wishorbit.app",
+    ]
+
+    catalog: list[dict] = []
+    for index, (place, lat, lng) in enumerate(us_places + world_places, start=1):
+        city = place.split(",")[0].strip()
+        title_template, description = activities[(index - 1) % len(activities)]
+        catalog.append(
+            {
+                "title": title_template.format(city=city),
+                "description": description,
+                "place": place,
+                "lat": lat,
+                "lng": lng,
+                "language": "zh",
+                "status": status_map.get(index, "open"),
+                "owner_alias": aliases[(index - 1) % len(aliases)],
+                "helper_email": helper_cycle[(index - 1) % len(helper_cycle)],
+                "needs_pending_request": index in pending_request_indexes,
+            }
+        )
+
+    return catalog
+
+
+def resolve_seed_owner(db: Session) -> User:
+    if ADMIN_EMAIL and ADMIN_PASSWORD:
+        admin = ensure_user(
+            db,
+            name=ADMIN_NAME,
+            email=ADMIN_EMAIL,
+            password=ADMIN_PASSWORD,
+            preferred_language="zh",
+        )
+        fallback_user = db.scalar(select(User).where(User.email == SEED_OWNER_FALLBACK_EMAIL))
+        if fallback_user and fallback_user.id != admin.id:
+            for wish in db.scalars(select(Wish).where(Wish.owner_id == fallback_user.id, Wish.owner_alias.is_not(None))).all():
+                wish.owner_id = admin.id
+        return admin
+
+    return ensure_user(
+        db,
+        name="Wish Orbit Seed Owner",
+        email=SEED_OWNER_FALLBACK_EMAIL,
+        preferred_language="zh",
+    )
+
+
+def create_seed_data(db: Session):
     users = {}
     for name, email, preferred_language in [
         ("Voyager", "voyager@wishorbit.app", "zh"),
@@ -1024,163 +1230,124 @@ def create_seed_data(db: Session):
         ("Nora", "nora@wishorbit.app", "en"),
         ("Youssef", "youssef@wishorbit.app", "en"),
     ]:
-        user = User(
+        users[email] = ensure_user(
+            db,
             name=name,
             email=email,
-            password_hash=generate_password_hash(DEMO_PASSWORD),
+            password=DEMO_PASSWORD,
             preferred_language=preferred_language,
         )
-        db.add(user)
-        db.flush()
-        users[email] = user
 
-    wishes = {}
-    for email, title, description, place, lat, lng, language, status in [
-        (
-            "lina@wishorbit.app",
-            "想在京都拍一组春日写真",
-            "希望有人愿意帮我做半天向导，带我找到安静又不游客化的樱花小路。",
-            "Kyoto, Japan",
-            35.0116,
-            135.7681,
-            "zh",
-            "matched",
-        ),
-        (
-            "mateo@wishorbit.app",
-            "想在利马画一面社区壁画",
-            "需要一个懂颜料和社区沟通的人，一起把学校外墙变成大家都愿意停下来的地方。",
-            "Lima, Peru",
-            -12.0464,
-            -77.0428,
-            "zh",
-            "open",
-        ),
-        (
-            "elsa@wishorbit.app",
-            "想在雷克雅未克借一架钢琴练一天",
-            "如果你知道哪家咖啡馆或工作室愿意借琴，我想用一整天录一段属于冰岛的旋律。",
-            "Reykjavik, Iceland",
-            64.1466,
-            -21.9426,
-            "zh",
-            "open",
-        ),
-        (
-            "nora@wishorbit.app",
-            "想在温哥华租一小块共享菜地",
-            "如果你知道社区花园怎么申请，愿意带我去看看现场，我就能把这个愿望开始起来。",
-            "Vancouver, Canada",
-            49.2827,
-            -123.1207,
-            "zh",
-            "completed",
-        ),
-        (
-            "youssef@wishorbit.app",
-            "想找到开罗老城区的阿拉伯语会话搭子",
-            "我想每周两次在咖啡馆练口语，只要有人愿意陪我从最简单的话题开始就够了。",
-            "Cairo, Egypt",
-            30.0444,
-            31.2357,
-            "zh",
-            "open",
-        ),
-        (
-            "voyager@wishorbit.app",
-            "想在首尔做一次深夜摄影散步",
-            "如果你熟悉延南洞和圣水一带，愿意带我走一条适合夜拍的人行路线，我想拍一组有电影感的城市照片。",
-            "Seoul, South Korea",
-            37.5665,
-            126.978,
-            "zh",
-            "open",
-        ),
-    ]:
-        wish = Wish(
-            owner_id=users[email].id,
-            title=title,
-            description=description,
-            place=place,
-            lat=lat,
-            lng=lng,
-            original_language=language,
-            status=status,
-        )
-        db.add(wish)
-        db.flush()
-        wishes[title] = wish
-
-    voyager = users["voyager@wishorbit.app"]
-    lina = users["lina@wishorbit.app"]
-    mateo = users["mateo@wishorbit.app"]
-    elsa = users["elsa@wishorbit.app"]
-
-    matched = Match(
-        wish_id=wishes["想在京都拍一组春日写真"].id,
-        helper_id=voyager.id,
-        status="matched",
-        matched_at=utc_now(),
-    )
-    pending_outgoing = Match(
-        wish_id=wishes["想在利马画一面社区壁画"].id,
-        helper_id=voyager.id,
-        status="pending",
-    )
-    completed = Match(
-        wish_id=wishes["想在温哥华租一小块共享菜地"].id,
-        helper_id=voyager.id,
-        status="completed",
-        matched_at=utc_now(),
-        completed_at=utc_now(),
-    )
-    incoming = Match(
-        wish_id=wishes["想在首尔做一次深夜摄影散步"].id,
-        helper_id=elsa.id,
-        status="pending",
-    )
-    db.add_all([matched, pending_outgoing, completed, incoming])
+    legacy_seed_titles = {
+        "想在京都拍一组春日写真",
+        "想在利马画一面社区壁画",
+        "想在雷克雅未克借一架钢琴练一天",
+        "想在温哥华租一小块共享菜地",
+        "想找到开罗老城区的阿拉伯语会话搭子",
+        "想在首尔做一次深夜摄影散步",
+    }
+    legacy_owner_ids = {user.id for user in users.values()}
+    legacy_wishes = db.scalars(
+        select(Wish)
+        .options(selectinload(Wish.matches).selectinload(Match.messages))
+        .where(Wish.title.in_(legacy_seed_titles), Wish.owner_id.in_(legacy_owner_ids), Wish.owner_alias.is_(None))
+    ).all()
+    for legacy_wish in legacy_wishes:
+        for match in legacy_wish.matches:
+            for message in match.messages:
+                db.delete(message)
+            db.delete(match)
+        db.delete(legacy_wish)
     db.flush()
 
-    db.add_all(
-        [
-            Message(
-                match_id=matched.id,
-                sender_id=lina.id,
-                body="我周六上午有空，可以从哲学之道开始，那里人会少一点。",
-                original_language="zh",
-            ),
-            Message(
-                match_id=matched.id,
-                sender_id=voyager.id,
-                body="太好了，我会带上胶片相机和一件浅色外套。",
-                original_language="zh",
-            ),
-        ]
-    )
+    seed_owner = resolve_seed_owner(db)
+    existing_seed_wishes = {
+        (wish.title, wish.place, wish.owner_alias or ""): wish
+        for wish in db.scalars(select(Wish).where(Wish.owner_alias.is_not(None))).all()
+    }
+
+    for item in seed_wish_catalog():
+        key = (item["title"], item["place"], item["owner_alias"])
+        wish = existing_seed_wishes.get(key)
+        if not wish:
+            wish = Wish(
+                owner_id=seed_owner.id,
+                owner_alias=item["owner_alias"],
+                title=item["title"],
+                description=item["description"],
+                place=item["place"],
+                lat=item["lat"],
+                lng=item["lng"],
+                original_language=item["language"],
+                status=item["status"],
+            )
+            db.add(wish)
+            db.flush()
+            existing_seed_wishes[key] = wish
+        else:
+            wish.owner_id = seed_owner.id
+            wish.owner_alias = item["owner_alias"]
+            wish.status = item["status"]
+
+        helper = users[item["helper_email"]]
+        existing_match = db.scalar(select(Match).where(Match.wish_id == wish.id, Match.helper_id == helper.id))
+
+        if item["status"] == "matched":
+            if not existing_match:
+                existing_match = Match(
+                    wish_id=wish.id,
+                    helper_id=helper.id,
+                    status="matched",
+                    matched_at=utc_now(),
+                )
+                db.add(existing_match)
+                db.flush()
+            else:
+                existing_match.status = "matched"
+                existing_match.matched_at = existing_match.matched_at or utc_now()
+                existing_match.completed_at = None
+        elif item["status"] == "completed":
+            if not existing_match:
+                existing_match = Match(
+                    wish_id=wish.id,
+                    helper_id=helper.id,
+                    status="completed",
+                    matched_at=utc_now(),
+                    completed_at=utc_now(),
+                )
+                db.add(existing_match)
+                db.flush()
+            else:
+                existing_match.status = "completed"
+                existing_match.matched_at = existing_match.matched_at or utc_now()
+                existing_match.completed_at = existing_match.completed_at or utc_now()
+        elif item["needs_pending_request"] and not existing_match:
+            db.add(Match(wish_id=wish.id, helper_id=helper.id, status="pending"))
+
 
 
 def init_database():
     Base.metadata.create_all(engine)
-    ensure_user_profile_columns()
+    ensure_schema_columns()
     with db_session() as db:
         create_seed_data(db)
 
 
-def ensure_user_profile_columns():
-    if not NORMALIZED_DATABASE_URL.startswith("sqlite"):
-        return
-
+def ensure_schema_columns():
+    inspector = inspect(engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    wish_columns = {column["name"] for column in inspector.get_columns("wishes")}
     with engine.begin() as connection:
-        existing_columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(users)")}
-        if "avatar_data_url" not in existing_columns:
+        if "avatar_data_url" not in user_columns:
             connection.exec_driver_sql("ALTER TABLE users ADD COLUMN avatar_data_url TEXT")
-        if "location_label" not in existing_columns:
+        if "location_label" not in user_columns:
             connection.exec_driver_sql("ALTER TABLE users ADD COLUMN location_label VARCHAR(180)")
-        if "location_lat" not in existing_columns:
+        if "location_lat" not in user_columns:
             connection.exec_driver_sql("ALTER TABLE users ADD COLUMN location_lat FLOAT")
-        if "location_lng" not in existing_columns:
+        if "location_lng" not in user_columns:
             connection.exec_driver_sql("ALTER TABLE users ADD COLUMN location_lng FLOAT")
+        if "owner_alias" not in wish_columns:
+            connection.exec_driver_sql("ALTER TABLE wishes ADD COLUMN owner_alias VARCHAR(80)")
 
 
 init_database()
