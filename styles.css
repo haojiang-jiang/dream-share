@@ -19,8 +19,6 @@
   --font-display-zh: "Noto Serif SC", serif;
   --font-body: "Space Grotesk", sans-serif;
   --font-body-zh: "Noto Sans SC", sans-serif;
-  --workspace-height: clamp(640px, calc(100vh - 190px), 800px);
-  --workspace-height-hero: clamp(620px, calc(100vh - 360px), 760px);
 }
 
 * {
@@ -508,19 +506,9 @@ html[lang^="zh"] .discover-hero-title {
   display: block;
 }
 
-.view-with-hero {
+.view.view-active.view-with-hero {
   display: grid;
   gap: 20px;
-}
-
-.view-with-hero > .content-grid {
-  min-height: 0;
-  height: var(--workspace-height-hero);
-}
-
-.view-workspace > .content-grid {
-  min-height: 0;
-  height: var(--workspace-height);
 }
 
 .content-grid {
@@ -542,10 +530,8 @@ html[lang^="zh"] .discover-hero-title {
 
 .feature-panel {
   min-height: 0;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .map-panel,
@@ -613,7 +599,6 @@ html[lang^="zh"] .discover-hero-title {
 .profile-summary,
 .profile-activity-panel {
   min-height: 0;
-  height: 100%;
 }
 
 .profile-summary {
@@ -1160,7 +1145,8 @@ html[lang^="zh"] .discover-hero-title {
 
 .discover-deck {
   position: relative;
-  min-height: 560px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .wish-deck-card {
@@ -1171,7 +1157,7 @@ html[lang^="zh"] .discover-hero-title {
   gap: 14px;
   padding: 28px;
   border-radius: 30px;
-  overflow: hidden;
+  overflow: auto;
   background:
     linear-gradient(180deg, #243646 0%, #1b2838 100%),
     linear-gradient(135deg, #27465a 0%, #2a3445 100%);
@@ -1230,9 +1216,15 @@ html[lang^="zh"] .discover-hero-title {
 }
 
 .wish-deck-card h3 {
-  font-size: clamp(2.2rem, 4.6vw, 3.2rem);
-  line-height: 1;
-  max-width: 10ch;
+  font-size: clamp(1.95rem, 4vw, 2.86rem);
+  line-height: 1.04;
+  max-width: 11ch;
+}
+
+html[lang^="zh"] .wish-deck-card h3 {
+  font-size: clamp(1.8rem, 3.8vw, 2.68rem);
+  line-height: 1.06;
+  letter-spacing: -0.05em;
 }
 
 .wish-deck-card .wish-card-head {
@@ -1261,6 +1253,7 @@ html[lang^="zh"] .discover-hero-title {
 
 .wish-deck-card .wish-card-actions {
   margin-top: auto;
+  padding-bottom: 2px;
 }
 
 .discover-swipe-hint {
@@ -1928,11 +1921,6 @@ html[lang^="zh"] .discover-hero-title {
 
   .app-side-column > .panel-card {
     min-height: 0;
-  }
-
-  .view-with-hero > .content-grid,
-  .view-workspace > .content-grid {
-    height: auto;
   }
 
   #mapMyWishes.map-side-scroll {
