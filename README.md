@@ -77,7 +77,7 @@ Health check endpoint:
 
 If you want a real public URL that other people can open, the fastest path is a Python host with managed PostgreSQL.
 
-Recommended path:
+Recommended path for a free internal test:
 
 1. push this repo to GitHub
 2. create a Render account
@@ -86,6 +86,14 @@ Recommended path:
    - one web service
    - one PostgreSQL database
 5. after deploy finishes, you'll get a public `onrender.com` URL
+
+For this repo's current `render.yaml`, the Render Blueprint is configured for a free internal-test deployment.
+
+Free-tier caveats:
+
+- the web service can spin down after inactivity
+- free resources are suitable for demos and internal testing, not stable production use
+- if you later want a real public product, switch the web service and database to paid plans
 
 If you prefer Docker-based hosting, this repo can also be deployed with:
 
