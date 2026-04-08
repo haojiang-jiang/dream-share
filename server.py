@@ -111,6 +111,21 @@ class TranslationCache(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(80))
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    category: Mapped[str] = mapped_column(String(24), default="other")
+    page: Mapped[str] = mapped_column(String(24), default="map")
+    message: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    user: Mapped[User | None] = relationship()
+
+
 def normalized_database_url(raw_url: str) -> str:
     if raw_url.startswith("postgres://"):
         return raw_url.replace("postgres://", "postgresql+psycopg://", 1)
@@ -340,7 +355,8 @@ def bootstrap():
         active_matches = []
         pending_outgoing = []
         my_wishes = []
-        discover_wishes = wishes
+        discover_wishes = [wish for wish in wishes if wish.status == "open"]
+        feedback_items: list[dict] = []
 
         if user:
             my_wishes = [wish for wish in wishes if wish.owner_id == user.id]
@@ -360,6 +376,14 @@ def bootstrap():
             incoming_requests = [match for match in matches if match["status"] == "pending" and match["viewerRole"] == "owner"]
             active_matches = [match for match in matches if match["status"] in {"matched", "completed"}]
             pending_outgoing = [match for match in matches if match["status"] == "pending" and match["viewerRole"] == "helper"]
+            if is_admin_user(user):
+                feedback_rows = db.scalars(
+                    select(Feedback)
+                    .options(selectinload(Feedback.user))
+                    .order_by(Feedback.created_at.desc())
+                    .limit(50)
+                ).all()
+                feedback_items = [serialize_feedback(item, language) for item in feedback_rows]
 
         return jsonify(
             {
@@ -371,6 +395,7 @@ def bootstrap():
                 "incomingRequests": incoming_requests,
                 "pendingMatches": pending_outgoing,
                 "activeMatches": active_matches,
+                "feedbackItems": feedback_items,
                 "demoAccounts": demo_accounts(),
             }
         )
@@ -728,6 +753,46 @@ def reverse_place_lookup():
     return jsonify({"place": place})
 
 
+@app.post("/api/feedback")
+def submit_feedback():
+    payload = request.get_json(force=True, silent=True) or {}
+    user_id = current_user_id()
+    name = (payload.get("name") or "").strip()
+    email = (payload.get("email") or "").strip().lower()
+    category = (payload.get("category") or "other").strip().lower()
+    page = (payload.get("page") or "map").strip().lower()
+    message = (payload.get("message") or "").strip()
+
+    if len(message) < 6:
+        raise ApiError("Please write a little more so we can understand the feedback.")
+
+    allowed_categories = {"bug", "ux", "feature", "other"}
+    allowed_pages = {"map", "discover", "inbox", "profile"}
+    category = category if category in allowed_categories else "other"
+    page = page if page in allowed_pages else "map"
+
+    with db_session() as db:
+        user = db.get(User, user_id) if user_id else None
+        if user:
+            name = user.name
+            email = user.email
+        elif len(name) < 2:
+            raise ApiError("Please leave a name so we know how to refer to you.")
+
+        feedback = Feedback(
+            user_id=user.id if user else None,
+            name=name,
+            email=email or None,
+            category=category,
+            page=page,
+            message=message,
+        )
+        db.add(feedback)
+        db.flush()
+        db.refresh(feedback)
+        return jsonify({"feedback": serialize_feedback(feedback, normalize_language(payload.get("language") or "zh"))})
+
+
 def get_current_user(db: Session) -> User | None:
     user_id = current_user_id()
     return db.get(User, user_id) if user_id else None
@@ -744,6 +809,7 @@ def serialize_user(user: User | None) -> dict | None:
         "id": user.id,
         "name": user.name,
         "email": user.email,
+        "isAdmin": is_admin_user(user),
         "preferredLanguage": normalize_language(user.preferred_language),
         "avatarDataUrl": user.avatar_data_url,
         "locationLabel": user.location_label,
@@ -754,6 +820,53 @@ def serialize_user(user: User | None) -> dict | None:
 
 def visible_owner_name(wish: Wish) -> str:
     return wish.owner_alias or wish.owner.name
+
+
+def is_admin_user(user: User | None) -> bool:
+    return bool(user and ADMIN_EMAIL and user.email.strip().lower() == ADMIN_EMAIL)
+
+
+def serialize_feedback(feedback: Feedback, language: str) -> dict:
+    category_labels = {
+        "zh": {
+            "bug": "Bug / 出错",
+            "ux": "体验 / 不顺手",
+            "feature": "功能建议",
+            "other": "其他",
+        },
+        "en": {
+            "bug": "Bug / Error",
+            "ux": "UX / Friction",
+            "feature": "Feature Request",
+            "other": "Other",
+        },
+    }
+    page_labels = {
+        "zh": {
+            "map": "地球",
+            "discover": "发现",
+            "inbox": "聊天",
+            "profile": "我的",
+        },
+        "en": {
+            "map": "Globe",
+            "discover": "Discover",
+            "inbox": "Inbox",
+            "profile": "Profile",
+        },
+    }
+    locale = "en" if language == "en" else "zh"
+    return {
+        "id": feedback.id,
+        "name": feedback.name,
+        "email": feedback.email,
+        "category": feedback.category,
+        "categoryLabel": category_labels[locale].get(feedback.category, category_labels[locale]["other"]),
+        "page": feedback.page,
+        "pageLabel": page_labels[locale].get(feedback.page, page_labels[locale]["map"]),
+        "message": feedback.message,
+        "createdAt": feedback.created_at.isoformat(),
+    }
 
 
 def serialize_wish(db: Session, wish: Wish, viewer_id: int | None, language: str, include_requests: bool = False) -> dict:

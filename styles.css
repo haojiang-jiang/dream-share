@@ -1114,6 +1114,21 @@ html[lang^="zh"] .discover-hero-title {
   word-break: keep-all;
 }
 
+.feedback-item-card .wish-card-title {
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.feedback-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 .text-link {
   padding: 0;
   color: #f6d9ca;
@@ -1527,6 +1542,12 @@ html[lang^="zh"] .wish-deck-card h3 {
   overflow: auto;
 }
 
+.feedback-card {
+  width: min(680px, 100%);
+  max-height: min(82vh, 820px);
+  overflow: auto;
+}
+
 .completion-card {
   width: min(560px, 100%);
   max-height: min(72vh, 640px);
@@ -1606,6 +1627,15 @@ html[lang^="zh"] .wish-deck-card h3 {
   min-height: 1.2rem;
   font-size: 0.88rem;
   color: rgba(141, 226, 189, 0.9);
+}
+
+.feedback-intro {
+  padding: 14px 16px;
+  border-radius: 18px;
+  color: var(--muted);
+  line-height: 1.65;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .place-search-results {

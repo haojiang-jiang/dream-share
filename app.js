@@ -9,6 +9,7 @@ const STRINGS = {
     htmlLang: "zh-CN",
     metaDescription: "Wish Orbit 是一个围绕地图发布愿望、通过匹配帮助别人实现愿望，并逐步解锁更多发布额度的愿望交换应用。",
     brandSubtitle: "让愿望带着地点，被刚好的人看见。",
+    openFeedbackButton: "反馈",
     authButton: "登录 / 注册",
     openComposerButton: "发布愿望",
     mapHeroEyebrow: "Map Home",
@@ -64,11 +65,13 @@ const STRINGS = {
     profileFilterMatched: "已匹配",
     profileFilterIncoming: "待我回应",
     profileFilterCompleted: "已完成",
+    profileFilterFeedback: "反馈意见",
     profileNoPosted: "你还没有发布任何愿望。",
     profileNoRequested: "你还没有向别人发出过帮助申请。",
     profileNoMatched: "一旦匹配成功，聊天会先出现在这里。",
     profileNoIncoming: "暂时还没有人向你的愿望发来新的申请。",
     profileNoCompleted: "完成后的愿望和聊天，会留在这里。",
+    profileNoFeedback: "这里会显示内测用户提交的反馈。",
     tabMap: "地球",
     tabDiscover: "发现",
     tabInbox: "聊天",
@@ -173,6 +176,26 @@ const STRINGS = {
     errorFallback: "出了点问题，请稍后再试。",
     composerNeedLocation: "请先在地图上点一个位置。",
     authDemoPrefix: "演示账号",
+    feedbackTitle: "这是内测版，欢迎告诉我们你的想法",
+    feedbackIntro: "你可以告诉我们哪里不好用、哪里想再改，或者你最希望补上的功能。",
+    feedbackNameLabel: "称呼",
+    feedbackEmailLabel: "邮箱",
+    feedbackCategoryLabel: "类型",
+    feedbackMessageLabel: "反馈内容",
+    feedbackSubmitButton: "提交反馈",
+    feedbackSubmitting: "提交中...",
+    feedbackNamePlaceholder: "你希望我们怎么称呼你",
+    feedbackEmailPlaceholder: "如果愿意被联系，可以留下邮箱",
+    feedbackMessagePlaceholder: "例如：哪里不好用、哪里看不懂、你最想增加什么功能。",
+    feedbackCategoryBug: "Bug / 出错",
+    feedbackCategoryUx: "体验 / 不顺手",
+    feedbackCategoryFeature: "功能建议",
+    feedbackCategoryOther: "其他",
+    feedbackSent: "谢谢，反馈已经收到。",
+    feedbackCardBy: "来自 {name}",
+    feedbackCardContact: "联系：{email}",
+    feedbackCardPage: "页面：{page}",
+    feedbackCardCategory: "类型：{category}",
     refreshing: "刷新中...",
     byOwner: "发布者：{name}",
     locatedAt: "落点：{place}",
@@ -187,6 +210,7 @@ const STRINGS = {
     htmlLang: "en",
     metaDescription: "Wish Orbit is a full-stack wish exchange app where people pin wishes to the globe, match with helpers, and chat after approval.",
     brandSubtitle: "Let wishes carry a place and find the people meant to see them.",
+    openFeedbackButton: "Feedback",
     authButton: "Sign In / Register",
     openComposerButton: "Post a Wish",
     mapHeroEyebrow: "Map Home",
@@ -242,11 +266,13 @@ const STRINGS = {
     profileFilterMatched: "Matched",
     profileFilterIncoming: "Needs Reply",
     profileFilterCompleted: "Completed",
+    profileFilterFeedback: "Feedback",
     profileNoPosted: "You have not posted any wishes yet.",
     profileNoRequested: "You have not sent any help requests yet.",
     profileNoMatched: "Matched wishes will show up here.",
     profileNoIncoming: "No one is waiting for your reply right now.",
     profileNoCompleted: "Completed wishes and chats stay here.",
+    profileNoFeedback: "Feedback from beta users will appear here.",
     tabMap: "Globe",
     tabDiscover: "Discover",
     tabInbox: "Inbox",
@@ -351,6 +377,26 @@ const STRINGS = {
     errorFallback: "Something went wrong. Please try again.",
     composerNeedLocation: "Please choose a location on the map first.",
     authDemoPrefix: "Demo account",
+    feedbackTitle: "This is a beta build, so tell us what you think",
+    feedbackIntro: "Tell us what feels broken, awkward, confusing, or what you most want us to add next.",
+    feedbackNameLabel: "Name",
+    feedbackEmailLabel: "Email",
+    feedbackCategoryLabel: "Category",
+    feedbackMessageLabel: "Feedback",
+    feedbackSubmitButton: "Send Feedback",
+    feedbackSubmitting: "Sending...",
+    feedbackNamePlaceholder: "How should we refer to you?",
+    feedbackEmailPlaceholder: "Leave an email if you'd like us to follow up",
+    feedbackMessagePlaceholder: "For example: what feels broken, confusing, or what feature you want most.",
+    feedbackCategoryBug: "Bug / Error",
+    feedbackCategoryUx: "UX / Friction",
+    feedbackCategoryFeature: "Feature Request",
+    feedbackCategoryOther: "Other",
+    feedbackSent: "Thanks — your feedback is in.",
+    feedbackCardBy: "From {name}",
+    feedbackCardContact: "Contact: {email}",
+    feedbackCardPage: "Page: {page}",
+    feedbackCardCategory: "Category: {category}",
     refreshing: "Refreshing...",
     byOwner: "Owner: {name}",
     locatedAt: "Pinned at {place}",
@@ -409,6 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function cacheElements() {
   ui.metaDescription = document.getElementById("metaDescription");
   ui.languageToggleButton = document.getElementById("languageToggleButton");
+  ui.openFeedbackButton = document.getElementById("openFeedbackButton");
   ui.authButton = document.getElementById("authButton");
   ui.openComposerButton = document.getElementById("openComposerButton");
   ui.heroCreateButton = document.getElementById("heroCreateButton");
@@ -446,6 +493,14 @@ function cacheElements() {
   ui.demoAccounts = document.getElementById("demoAccounts");
   ui.composerModal = document.getElementById("composerModal");
   ui.closeComposerButton = document.getElementById("closeComposerButton");
+  ui.feedbackModal = document.getElementById("feedbackModal");
+  ui.closeFeedbackButton = document.getElementById("closeFeedbackButton");
+  ui.feedbackForm = document.getElementById("feedbackForm");
+  ui.feedbackNameInput = document.getElementById("feedbackNameInput");
+  ui.feedbackEmailInput = document.getElementById("feedbackEmailInput");
+  ui.feedbackCategoryInput = document.getElementById("feedbackCategoryInput");
+  ui.feedbackMessageInput = document.getElementById("feedbackMessageInput");
+  ui.feedbackSubmitButton = document.getElementById("feedbackSubmitButton");
   ui.wishForm = document.getElementById("wishForm");
   ui.wishTitleInput = document.getElementById("wishTitleInput");
   ui.wishDescriptionInput = document.getElementById("wishDescriptionInput");
@@ -471,6 +526,7 @@ function cacheElements() {
 
 function bindEvents() {
   ui.languageToggleButton.addEventListener("click", toggleLanguage);
+  ui.openFeedbackButton.addEventListener("click", openFeedback);
   ui.authButton.addEventListener("click", () => (state.currentUser ? setActiveView("profile") : openAuth("login")));
   ui.openComposerButton.addEventListener("click", openComposer);
   ui.heroCreateButton.addEventListener("click", openComposer);
@@ -481,10 +537,12 @@ function bindEvents() {
   });
   ui.closeAuthButton.addEventListener("click", closeAuth);
   ui.closeComposerButton.addEventListener("click", closeComposer);
+  ui.closeFeedbackButton.addEventListener("click", closeFeedback);
   ui.closeDetailButton.addEventListener("click", closeDetail);
   ui.closeCompletionButton.addEventListener("click", closeCompletion);
   ui.closeConfirmButton.addEventListener("click", closeConfirm);
   ui.authForm.addEventListener("submit", submitAuth);
+  ui.feedbackForm.addEventListener("submit", submitFeedback);
   ui.wishForm.addEventListener("submit", submitWish);
   ui.placeSearchButton.addEventListener("click", searchComposerPlace);
   ui.chatForm.addEventListener("submit", sendChatMessage);
@@ -521,6 +579,9 @@ function bindEvents() {
   });
   ui.composerModal.addEventListener("click", (event) => {
     if (event.target === ui.composerModal) closeComposer();
+  });
+  ui.feedbackModal.addEventListener("click", (event) => {
+    if (event.target === ui.feedbackModal) closeFeedback();
   });
   ui.detailModal.addEventListener("click", (event) => {
     if (event.target === ui.detailModal) closeDetail();
@@ -855,6 +916,7 @@ function applyStaticText() {
   ui.metaDescription.setAttribute("content", t("metaDescription"));
   document.getElementById("brandSubtitle").textContent = t("brandSubtitle");
   ui.languageToggleButton.textContent = state.language === "zh" ? "EN" : "中";
+  ui.openFeedbackButton.textContent = t("openFeedbackButton");
   ui.authButton.textContent = state.currentUser ? state.currentUser.name : t("authButton");
   ui.openComposerButton.textContent = t("openComposerButton");
   document.getElementById("mapHeroEyebrow").textContent = t("mapHeroEyebrow");
@@ -900,6 +962,21 @@ function applyStaticText() {
   document.getElementById("authPasswordLabel").textContent = t("authPasswordLabel");
   ui.authNameInput.placeholder = t("authNamePlaceholder");
   ui.authPasswordInput.placeholder = t("authPasswordPlaceholder");
+  document.getElementById("feedbackEyebrow").textContent = state.language === "zh" ? "Feedback" : "Feedback";
+  document.getElementById("feedbackTitle").textContent = t("feedbackTitle");
+  document.getElementById("feedbackIntro").textContent = t("feedbackIntro");
+  document.getElementById("feedbackNameLabel").textContent = t("feedbackNameLabel");
+  document.getElementById("feedbackEmailLabel").textContent = t("feedbackEmailLabel");
+  document.getElementById("feedbackCategoryLabel").textContent = t("feedbackCategoryLabel");
+  document.getElementById("feedbackMessageLabel").textContent = t("feedbackMessageLabel");
+  document.getElementById("feedbackCategoryBug").textContent = t("feedbackCategoryBug");
+  document.getElementById("feedbackCategoryUx").textContent = t("feedbackCategoryUx");
+  document.getElementById("feedbackCategoryFeature").textContent = t("feedbackCategoryFeature");
+  document.getElementById("feedbackCategoryOther").textContent = t("feedbackCategoryOther");
+  ui.feedbackNameInput.placeholder = t("feedbackNamePlaceholder");
+  ui.feedbackEmailInput.placeholder = t("feedbackEmailPlaceholder");
+  ui.feedbackMessageInput.placeholder = t("feedbackMessagePlaceholder");
+  ui.feedbackSubmitButton.textContent = t("feedbackSubmitButton");
   document.getElementById("composerTitle").textContent = state.editingWishId ? t("composerEditTitle") : t("composerTitle");
   document.getElementById("wishTitleLabel").textContent = t("wishTitleLabel");
   document.getElementById("wishDescriptionLabel").textContent = t("wishDescriptionLabel");
@@ -1366,14 +1443,25 @@ function buildProfileSections() {
   const matched = [...(state.data?.activeMatches || [])].filter((match) => match.status === "matched");
   const incoming = [...(state.data?.incomingRequests || [])];
   const completed = [...(state.data?.activeMatches || [])].filter((match) => match.status === "completed");
+  const feedback = state.currentUser?.isAdmin ? [...(state.data?.feedbackItems || [])] : [];
 
-  return [
+  const sections = [
     { key: "posted", label: t("profileFilterPosted"), count: posted.length, items: posted, emptyText: t("profileNoPosted") },
     { key: "requested", label: t("profileFilterRequested"), count: requested.length, items: requested, emptyText: t("profileNoRequested") },
     { key: "matched", label: t("profileFilterMatched"), count: matched.length, items: matched, emptyText: t("profileNoMatched") },
     { key: "incoming", label: t("profileFilterIncoming"), count: incoming.length, items: incoming, emptyText: t("profileNoIncoming") },
     { key: "completed", label: t("profileFilterCompleted"), count: completed.length, items: completed, emptyText: t("profileNoCompleted") },
   ];
+  if (state.currentUser?.isAdmin) {
+    sections.push({
+      key: "feedback",
+      label: t("profileFilterFeedback"),
+      count: feedback.length,
+      items: feedback,
+      emptyText: t("profileNoFeedback")
+    });
+  }
+  return sections;
 }
 
 function renderProfileActivity(sections = buildProfileSections()) {
@@ -1486,6 +1574,9 @@ function profileFilterButtonHTML(section) {
 }
 
 function profileActivityCardHTML(type, item) {
+  if (type === "feedback") {
+    return feedbackCardHTML(item);
+  }
   if (type === "posted") {
     const actionButtons = [{ action: "open-detail", value: item.id, label: t("openDetail") }];
     if (item.canManage) {
@@ -1495,6 +1586,25 @@ function profileActivityCardHTML(type, item) {
     return wishCardHTML(item, { showOwner: false, actionButtons });
   }
   return matchCardHTML(item);
+}
+
+function feedbackCardHTML(item) {
+  return `
+    <article class="wish-card feedback-item-card">
+      <div class="wish-card-head">
+        <div>
+          <h4 class="wish-card-title">${escapeHtml(item.message)}</h4>
+          <p class="wish-card-meta">${escapeHtml(t("feedbackCardBy", { name: item.name }))}</p>
+        </div>
+        <span class="translate-badge">${escapeHtml(item.categoryLabel)}</span>
+      </div>
+      <div class="feedback-meta">
+        <span>${escapeHtml(t("feedbackCardPage", { page: item.pageLabel }))}</span>
+        ${item.email ? `<span>${escapeHtml(t("feedbackCardContact", { email: item.email }))}</span>` : ""}
+      </div>
+      <p class="wish-card-meta">${escapeHtml(formatDate(item.createdAt))}</p>
+    </article>
+  `;
 }
 
 function deriveProfileLocation() {
@@ -1863,6 +1973,25 @@ function closeComposer() {
   applyStaticText();
 }
 
+function openFeedback() {
+  if (state.currentUser) {
+    ui.feedbackNameInput.value = state.currentUser.name || "";
+    ui.feedbackEmailInput.value = state.currentUser.email || "";
+  } else {
+    ui.feedbackNameInput.value = "";
+    ui.feedbackEmailInput.value = "";
+  }
+  ui.feedbackCategoryInput.value = "ux";
+  ui.feedbackMessageInput.value = "";
+  ui.feedbackModal.classList.remove("hidden");
+  ui.feedbackModal.setAttribute("aria-hidden", "false");
+}
+
+function closeFeedback() {
+  ui.feedbackModal.classList.add("hidden");
+  ui.feedbackModal.setAttribute("aria-hidden", "true");
+}
+
 function openEditWish(wishId) {
   if (!requireAuth()) return;
   const wish = state.data?.myWishes?.find((item) => item.id === wishId);
@@ -2105,6 +2234,33 @@ async function submitAuth(event) {
     await loadBootstrap();
   } catch (error) {
     showToast(error.message || t("errorFallback"));
+  }
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  const submitButton = ui.feedbackSubmitButton;
+  submitButton.disabled = true;
+  submitButton.textContent = t("feedbackSubmitting");
+  try {
+    await api("/api/feedback", {
+      method: "POST",
+      body: JSON.stringify({
+        name: ui.feedbackNameInput.value.trim(),
+        email: ui.feedbackEmailInput.value.trim(),
+        category: ui.feedbackCategoryInput.value,
+        message: ui.feedbackMessageInput.value.trim(),
+        page: state.activeView
+      })
+    });
+    closeFeedback();
+    await loadBootstrap();
+    showToast(t("feedbackSent"));
+  } catch (error) {
+    showToast(error.message || t("errorFallback"));
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = t("feedbackSubmitButton");
   }
 }
 
