@@ -1100,7 +1100,7 @@ def seed_wish_catalog() -> list[dict]:
         ("Copenhagen, Denmark", 55.6761, 12.5683),
         ("Tokyo, Japan", 35.6762, 139.6503),
         ("Seoul, South Korea", 37.5665, 126.9780),
-        ("Taipei, Taiwan", 25.0330, 121.5654),
+        ("Taipei, China", 25.0330, 121.5654),
         ("Mexico City, Mexico", 19.4326, -99.1332),
         ("Melbourne, Australia", -37.8136, 144.9631),
     ]
@@ -1261,6 +1261,11 @@ def create_seed_data(db: Session):
     db.flush()
 
     seed_owner = resolve_seed_owner(db)
+    legacy_taipei_wishes = db.scalars(
+        select(Wish).where(Wish.owner_alias.is_not(None), Wish.place == "Taipei, Taiwan")
+    ).all()
+    for legacy_wish in legacy_taipei_wishes:
+        legacy_wish.place = "Taipei, China"
     existing_seed_wishes = {
         (wish.title, wish.place, wish.owner_alias or ""): wish
         for wish in db.scalars(select(Wish).where(Wish.owner_alias.is_not(None))).all()

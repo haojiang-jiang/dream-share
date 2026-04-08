@@ -19,6 +19,8 @@
   --font-display-zh: "Noto Serif SC", serif;
   --font-body: "Space Grotesk", sans-serif;
   --font-body-zh: "Noto Sans SC", sans-serif;
+  --workspace-height: clamp(640px, calc(100vh - 190px), 800px);
+  --workspace-height-hero: clamp(620px, calc(100vh - 360px), 760px);
 }
 
 * {
@@ -499,15 +501,32 @@ html[lang^="zh"] .discover-hero-title {
 
 .view {
   display: none;
+  min-height: 0;
 }
 
 .view-active {
   display: block;
 }
 
+.view-with-hero {
+  display: grid;
+  gap: 20px;
+}
+
+.view-with-hero > .content-grid {
+  min-height: 0;
+  height: var(--workspace-height-hero);
+}
+
+.view-workspace > .content-grid {
+  min-height: 0;
+  height: var(--workspace-height);
+}
+
 .content-grid {
   gap: 20px;
   align-items: stretch;
+  min-height: 0;
 }
 
 .discover-grid {
@@ -522,9 +541,11 @@ html[lang^="zh"] .discover-hero-title {
 }
 
 .feature-panel {
-  min-height: 640px;
+  min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .map-panel,
@@ -559,12 +580,15 @@ html[lang^="zh"] .discover-hero-title {
   min-width: 320px;
   display: grid;
   gap: 20px;
+  min-height: 0;
+  align-self: stretch;
 }
 
 .map-side-column {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .app-side-column {
@@ -588,7 +612,8 @@ html[lang^="zh"] .discover-hero-title {
 
 .profile-summary,
 .profile-activity-panel {
-  min-height: 640px;
+  min-height: 0;
+  height: 100%;
 }
 
 .profile-summary {
@@ -804,6 +829,7 @@ html[lang^="zh"] .discover-hero-title {
 
 .map-side-column > .panel-card {
   flex: 1;
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -812,6 +838,7 @@ html[lang^="zh"] .discover-hero-title {
 
 .map-side-scroll {
   min-height: 0;
+  height: 100%;
 }
 
 #mapMyWishes.map-side-scroll {
@@ -895,9 +922,10 @@ html[lang^="zh"] .discover-hero-title {
   --globe-halo-opacity: 1;
   --globe-shadow-scale: 1;
   position: relative;
+  flex: 1 1 auto;
   width: 100%;
-  height: 74vh;
-  min-height: 620px;
+  height: auto;
+  min-height: 0;
   border-radius: 32px;
   overflow: hidden;
   border: 1px solid rgba(122, 199, 216, 0.14);
@@ -1807,10 +1835,16 @@ html[lang^="zh"] .discover-hero-title {
 
   .map-side-column > .panel-card {
     flex: none;
+    height: auto;
   }
 
   .app-side-column > .panel-card {
     min-height: 0;
+  }
+
+  .view-with-hero > .content-grid,
+  .view-workspace > .content-grid {
+    height: auto;
   }
 
   #mapMyWishes.map-side-scroll {
