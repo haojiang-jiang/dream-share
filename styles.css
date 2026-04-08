@@ -19,6 +19,8 @@
   --font-display-zh: "Noto Serif SC", serif;
   --font-body: "Space Grotesk", sans-serif;
   --font-body-zh: "Noto Sans SC", sans-serif;
+  --map-stage-height: 760px;
+  --discover-stage-height: 760px;
 }
 
 * {
@@ -537,6 +539,12 @@ html[lang^="zh"] .discover-hero-title {
 .map-panel,
 .swipe-panel {
   flex: 1.38;
+  height: var(--map-stage-height);
+  overflow: hidden;
+}
+
+.swipe-panel {
+  height: var(--discover-stage-height);
 }
 
 .map-panel {
@@ -574,7 +582,7 @@ html[lang^="zh"] .discover-hero-title {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: var(--map-stage-height);
 }
 
 .app-side-column {
@@ -583,6 +591,7 @@ html[lang^="zh"] .discover-hero-title {
   display: grid;
   gap: 20px;
   grid-template-rows: repeat(2, minmax(0, 1fr));
+  height: var(--discover-stage-height);
 }
 
 .app-side-column-single {
@@ -910,7 +919,7 @@ html[lang^="zh"] .discover-hero-title {
   flex: 1 1 auto;
   width: 100%;
   height: auto;
-  min-height: 0;
+  min-height: 520px;
   border-radius: 32px;
   overflow: hidden;
   border: 1px solid rgba(122, 199, 216, 0.14);
@@ -1155,7 +1164,7 @@ html[lang^="zh"] .discover-hero-title {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 28px;
+  padding: 22px 22px 20px;
   border-radius: 30px;
   overflow: auto;
   background:
@@ -1216,14 +1225,14 @@ html[lang^="zh"] .discover-hero-title {
 }
 
 .wish-deck-card h3 {
-  font-size: clamp(1.95rem, 4vw, 2.86rem);
-  line-height: 1.04;
-  max-width: 11ch;
+  font-size: clamp(1.56rem, 3vw, 2.32rem);
+  line-height: 1.08;
+  max-width: 12ch;
 }
 
 html[lang^="zh"] .wish-deck-card h3 {
-  font-size: clamp(1.8rem, 3.8vw, 2.68rem);
-  line-height: 1.06;
+  font-size: clamp(1.46rem, 2.85vw, 2.16rem);
+  line-height: 1.1;
   letter-spacing: -0.05em;
 }
 
@@ -1238,9 +1247,9 @@ html[lang^="zh"] .wish-deck-card h3 {
 }
 
 .wish-deck-body {
-  margin-top: 18px;
+  margin-top: 12px;
   color: #e7eef3;
-  line-height: 1.75;
+  line-height: 1.62;
   position: relative;
   z-index: 1;
 }
@@ -1928,6 +1937,17 @@ html[lang^="zh"] .wish-deck-card h3 {
     max-height: none;
     overflow: visible;
     padding-right: 0;
+  }
+
+  .map-panel,
+  .swipe-panel,
+  .map-side-column,
+  .app-side-column {
+    height: auto;
+  }
+
+  #worldMap {
+    min-height: 420px;
   }
 
   .side-panel-scroll {
