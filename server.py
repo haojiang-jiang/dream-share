@@ -1164,6 +1164,9 @@ def init_database():
 
 
 def ensure_user_profile_columns():
+    if not NORMALIZED_DATABASE_URL.startswith("sqlite"):
+        return
+
     with engine.begin() as connection:
         existing_columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(users)")}
         if "avatar_data_url" not in existing_columns:
