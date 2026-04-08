@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+dream_share.db
+.DS_Store

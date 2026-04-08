@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wish Orbit</title>
+    <meta
+      id="metaDescription"
+      name="description"
+      content="Wish Orbit 是一个围绕地图发布愿望、通过匹配帮助别人实现愿望，并逐步解锁更多发布额度的愿望交换应用。"
+    />
+    <link rel="icon" type="image/svg+xml" href="./orbit-mark.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.22.0/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="background-orb orb-left"></div>
+    <div class="background-orb orb-right"></div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <p class="eyebrow" id="brandEyebrow">Global Wish Exchange</p>
+          <div class="brand-row">
+            <div class="brand-mark">
+              <img src="./orbit-mark.svg" alt="Wish Orbit" />
+            </div>
+            <div>
+              <h1>Wish Orbit</h1>
+              <p class="brand-subtitle" id="brandSubtitle">
+                让愿望带着地点，被刚好的人看见。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="ghost-button compact-button" id="languageToggleButton" type="button">EN</button>
+          <button class="ghost-button" id="authButton" type="button">登录 / 注册</button>
+          <button class="primary-button" id="openComposerButton" type="button">发布愿望</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="view view-active" data-view="map">
+          <section class="overview-card map-overview-card">
+            <div class="overview-copy">
+              <p class="eyebrow" id="mapHeroEyebrow">Map Home</p>
+              <h2 id="mapHeroTitle" class="map-hero-title">
+                <span class="hero-title-line">把愿望放到地球上</span>
+                <span class="hero-title-line">让善意找到它</span>
+              </h2>
+              <p id="mapHeroText" class="overview-text">
+                你的愿望会带着地点出现在地球上。每帮助别人完成一次愿望，你就会增加一个新的发布额度。
+              </p>
+              <div class="overview-actions">
+                <button class="primary-button" id="heroCreateButton" type="button">发布新愿望</button>
+                <button class="ghost-button" id="heroAuthButton" type="button">登录后开始匹配</button>
+              </div>
+            </div>
+
+            <div class="stats-grid map-stats-grid">
+              <article class="stat-card">
+                <div class="stat-label-row">
+                  <span id="quotaLabel">可发布额度</span>
+                  <span class="info-popover">
+                    <button
+                      class="info-trigger"
+                      id="quotaInfoButton"
+                      type="button"
+                      aria-label="额度规则说明"
+                      aria-describedby="quotaTooltip"
+                    >
+                      i
+                    </button>
+                    <span class="info-tooltip" id="quotaTooltip" role="tooltip">
+                      初始有 3 个发布额度。每帮助别人完成 1 个愿望，就会增加 1 个额度；已发布但未完成的愿望会占用额度。
+                    </span>
+                  </span>
+                </div>
+                <strong id="quotaValue">1</strong>
+              </article>
+              <article class="stat-card">
+                <span id="helpedLabel">已帮助完成</span>
+                <strong id="helpedValue">0</strong>
+              </article>
+              <article class="stat-card">
+                <span id="matchedLabel">活跃匹配</span>
+                <strong id="matchedValue">0</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="content-grid map-content-grid">
+            <div class="panel-card map-panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow" id="mapPanelEyebrow">Wish Globe</p>
+                  <h3 id="mapPanelTitle">愿望地球</h3>
+                </div>
+                <button class="ghost-button" id="refreshButton" type="button">刷新</button>
+              </div>
+              <div class="panel-note" id="mapNotice">每一个光点，都是一个等待回应的愿望。点开它，看看你能否成为实现它的阿拉丁灯神吧！</div>
+              <div id="worldMap" aria-label="wish map"></div>
+            </div>
+
+            <aside class="side-column map-side-column">
+              <section class="panel-card">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow" id="myOrbitEyebrow">My Orbit</p>
+                    <h3 id="myOrbitTitle">我的愿望</h3>
+                  </div>
+                </div>
+                <div id="mapMyWishes" class="wish-list map-side-scroll"></div>
+              </section>
+            </aside>
+          </section>
+        </section>
+
+        <section class="view" data-view="discover">
+          <section class="overview-card slim-card discover-overview-card">
+            <div class="overview-copy">
+              <p class="eyebrow" id="discoverEyebrow">Discover</p>
+              <h2 id="discoverTitle" class="discover-hero-title">
+                <span class="hero-title-line">有些愿望</span>
+                <span class="hero-title-line">不是你去寻找</span>
+                <span class="hero-title-line">而是它刚好来到你面前</span>
+              </h2>
+              <p id="discoverText" class="overview-text">
+                系统会顺着你的偏好，把别人的愿望悄悄送来。向左回应，向右略过；那些让你停下来的片刻，也许就是命运在轻轻敲门。
+              </p>
+            </div>
+          </section>
+
+          <section class="content-grid map-content-grid discover-grid">
+            <div class="panel-card swipe-panel feature-panel">
+              <div id="discoverDeck" class="discover-deck"></div>
+              <div class="deck-actions">
+                <button class="ghost-button deck-button" id="passButton" type="button">略过</button>
+                <button class="primary-button deck-button" id="helpButton" type="button">申请帮助</button>
+              </div>
+            </div>
+
+            <aside class="side-column app-side-column">
+              <section class="panel-card side-stack-panel">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow" id="incomingEyebrow">Incoming</p>
+                    <h3 id="incomingTitle">收到的申请</h3>
+                  </div>
+                </div>
+                <div id="incomingRequests" class="wish-list side-panel-scroll"></div>
+              </section>
+
+              <section class="panel-card side-stack-panel">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow" id="pendingEyebrow">Pending</p>
+                    <h3 id="pendingTitle">等待对方确认</h3>
+                  </div>
+                </div>
+                <div id="pendingMatches" class="wish-list side-panel-scroll"></div>
+              </section>
+            </aside>
+          </section>
+        </section>
+
+        <section class="view" data-view="inbox">
+          <section class="content-grid map-content-grid inbox-workspace-grid">
+            <aside class="side-column inbox-thread-column">
+              <section class="panel-card thread-column feature-panel">
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="eyebrow" id="threadsEyebrow">Threads</p>
+                    <h3 id="threadsTitle">活跃聊天</h3>
+                  </div>
+                </div>
+                <div id="matchThreads" class="thread-list side-panel-scroll"></div>
+              </section>
+            </aside>
+
+            <section class="panel-card chat-panel feature-panel">
+              <div id="chatHeader" class="chat-header"></div>
+              <div id="chatMessages" class="chat-messages"></div>
+              <form id="chatForm" class="chat-form">
+                <div class="chat-composer-shell">
+                  <textarea
+                    id="chatInput"
+                    rows="1"
+                    placeholder="输入一条消息，推动这个愿望往前走。"
+                  ></textarea>
+                  <button class="primary-button" type="submit" id="sendMessageButton">发送</button>
+                </div>
+              </form>
+            </section>
+          </section>
+        </section>
+
+        <section class="view" data-view="profile">
+          <section class="content-grid profile-workspace-grid">
+            <aside class="panel-card profile-summary feature-panel" id="profileSummary"></aside>
+            <section class="panel-card profile-activity-panel feature-panel">
+              <div class="panel-head compact-head">
+                <div>
+                  <p class="eyebrow" id="profileActivityEyebrow">Orbit Activity</p>
+                  <h3 id="profileActivityTitle">你的愿望轨迹</h3>
+                </div>
+              </div>
+              <div id="profileFilters" class="profile-filter-row"></div>
+              <div id="profileActivityList" class="wish-list profile-activity-list"></div>
+            </section>
+          </section>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="Primary navigation">
+        <button class="tab-button tab-button-active" data-view-target="map" type="button">
+          <span id="tabMap">地球</span>
+        </button>
+        <button class="tab-button" data-view-target="discover" type="button">
+          <span id="tabDiscover">发现</span>
+        </button>
+        <button class="tab-button" data-view-target="inbox" type="button">
+          <span id="tabInbox">聊天</span>
+        </button>
+        <button class="tab-button" data-view-target="profile" type="button">
+          <span id="tabProfile">我的</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="modal hidden" id="authModal" aria-hidden="true">
+      <div class="modal-card auth-card">
+        <button class="icon-button" id="closeAuthButton" type="button" aria-label="Close">×</button>
+        <div class="auth-layout">
+          <div class="auth-hero">
+            <p class="eyebrow" id="authEyebrow">Join the Orbit</p>
+            <h3 id="authTitle">登录之后，你的愿望、匹配和聊天就会真正保存下来。</h3>
+            <p id="authText" class="overview-text">
+              这里已经接上真实后端和数据库。你可以注册新账号，也可以先用演示账号体验完整流程。
+            </p>
+            <div id="demoAccounts" class="demo-list"></div>
+          </div>
+
+          <div>
+            <div class="auth-tabs">
+              <button class="ghost-button auth-tab auth-tab-active" data-auth-mode="login" type="button" id="loginTab">
+                登录
+              </button>
+              <button class="ghost-button auth-tab" data-auth-mode="register" type="button" id="registerTab">
+                注册
+              </button>
+            </div>
+
+            <form id="authForm" class="form-grid">
+              <label id="authNameField" class="hidden">
+                <span id="authNameLabel">昵称</span>
+                <input id="authNameInput" type="text" maxlength="40" placeholder="给自己起个名字" />
+              </label>
+              <label>
+                <span id="authEmailLabel">邮箱</span>
+                <input id="authEmailInput" type="email" placeholder="you@example.com" required />
+              </label>
+              <label>
+                <span id="authPasswordLabel">密码</span>
+                <input id="authPasswordInput" type="password" minlength="6" placeholder="至少 6 位" required />
+              </label>
+              <button class="primary-button full-button" type="submit" id="authSubmitButton">登录</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="composerModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow" id="composerEyebrow">Create Wish</p>
+            <h3 id="composerTitle">发布一个新的愿望</h3>
+          </div>
+          <button class="icon-button" id="closeComposerButton" type="button" aria-label="Close">×</button>
+        </div>
+
+        <form id="wishForm" class="form-grid">
+          <label>
+            <span id="wishTitleLabel">愿望标题</span>
+            <input id="wishTitleInput" name="title" type="text" maxlength="80" required />
+          </label>
+          <label>
+            <span id="wishDescriptionLabel">愿望内容</span>
+            <textarea id="wishDescriptionInput" name="description" rows="4" maxlength="280" required></textarea>
+          </label>
+          <label class="place-field-shell">
+            <span id="wishPlaceLabel">地点名称</span>
+            <div class="place-input-row">
+              <input id="wishPlaceInput" name="place" type="text" maxlength="100" required />
+              <button class="ghost-button compact-button" id="placeSearchButton" type="button">搜索定位</button>
+            </div>
+            <span id="placeHelperText" class="field-helper">
+              输入地点名称后点搜索定位，或者直接在下方地图上点选。
+            </span>
+            <div id="placeSearchMeta" class="field-meta"></div>
+            <div id="placeSearchResults" class="place-search-results"></div>
+          </label>
+          <div class="composer-map-shell">
+            <div class="panel-head compact-head composer-map-head">
+              <div>
+                <p class="eyebrow" id="composerMapEyebrow">Pick a Spot</p>
+                <h4 id="composerMapTitle">在地图上点选具体位置</h4>
+              </div>
+            </div>
+            <div id="composerMap" aria-label="pick exact location"></div>
+          </div>
+          <div class="coordinate-box">
+            <p id="coordinateLabel">地图坐标</p>
+            <strong id="selectedCoordinates">尚未选择地点</strong>
+            <span id="coordinateHint">打开弹窗后直接点击地图，就能为愿望设置位置。</span>
+          </div>
+          <button class="primary-button full-button" type="submit" id="publishWishButton">发布到地球</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="detailModal" aria-hidden="true">
+      <div class="modal-card detail-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow" id="detailEyebrow">Wish Detail</p>
+            <h3 id="detailTitle">愿望详情</h3>
+          </div>
+          <button class="icon-button" id="closeDetailButton" type="button" aria-label="Close">×</button>
+        </div>
+        <div id="detailBody" class="detail-body"></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="completionModal" aria-hidden="true">
+      <div class="modal-card completion-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow" id="completionEyebrow">Completed</p>
+            <h3 id="completionTitle">愿望已完成</h3>
+          </div>
+          <button class="icon-button" id="closeCompletionButton" type="button" aria-label="Close">×</button>
+        </div>
+        <div id="completionBody" class="detail-body"></div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="confirmModal" aria-hidden="true">
+      <div class="modal-card confirm-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow" id="confirmEyebrow">Confirm</p>
+            <h3 id="confirmTitle">确认完成这个愿望？</h3>
+          </div>
+          <button class="icon-button" id="closeConfirmButton" type="button" aria-label="Close">×</button>
+        </div>
+        <div id="confirmBody" class="detail-body"></div>
+      </div>
+    </div>
+
+    <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/maplibre-gl@5.22.0/dist/maplibre-gl.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
