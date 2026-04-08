@@ -390,7 +390,9 @@ const state = {
   globeSpinLastTime: 0,
   globeSpinPauseUntil: 0,
   routeApplied: false,
-  chatPollTimer: null
+  chatPollTimer: null,
+  discoverSwipe: null,
+  discoverActionPending: false
 };
 
 const ui = {};
@@ -510,6 +512,10 @@ function bindEvents() {
   ui.confirmBody.addEventListener("click", handleAction);
   ui.demoAccounts.addEventListener("click", handleAction);
   ui.placeSearchResults.addEventListener("click", handleAction);
+  ui.discoverDeck.addEventListener("pointerdown", beginDiscoverSwipe);
+  window.addEventListener("pointermove", moveDiscoverSwipe);
+  window.addEventListener("pointerup", endDiscoverSwipe);
+  window.addEventListener("pointercancel", cancelDiscoverSwipe);
   ui.authModal.addEventListener("click", (event) => {
     if (event.target === ui.authModal) closeAuth();
   });
@@ -1085,7 +1091,9 @@ function renderDiscoverDeck() {
     .map((wish, index) => {
       const copy = resolveWishCopy(wish);
       return `
-        <article class="wish-deck-card" data-depth="${index}">
+        <article class="wish-deck-card" data-depth="${index}" data-wish-id="${wish.id}">
+          <div class="discover-swipe-hint discover-swipe-help">${escapeHtml(t("helpButton"))}</div>
+          <div class="discover-swipe-hint discover-swipe-pass">${escapeHtml(t("passButton"))}</div>
           <div class="wish-card-head">
             <div>
               <p class="eyebrow">${escapeHtml(t("detailOwner"))}</p>
@@ -1104,6 +1112,118 @@ function renderDiscoverDeck() {
       `;
     })
     .join("");
+}
+
+function getTopDiscoverCard() {
+  return ui.discoverDeck.querySelector('.wish-deck-card[data-depth="0"]');
+}
+
+function beginDiscoverSwipe(event) {
+  if (state.discoverActionPending) return;
+  if (event.button !== undefined && event.button !== 0) return;
+  const topCard = event.target.closest('.wish-deck-card[data-depth="0"]');
+  if (!topCard) return;
+  if (event.target.closest("button, a, [data-action]")) return;
+
+  state.discoverSwipe = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    deltaX: 0,
+    deltaY: 0,
+    cardWidth: Math.max(topCard.offsetWidth, 1),
+    topCard
+  };
+  topCard.classList.add("wish-deck-card-dragging");
+  topCard.setPointerCapture?.(event.pointerId);
+}
+
+function moveDiscoverSwipe(event) {
+  const swipe = state.discoverSwipe;
+  if (!swipe || event.pointerId !== swipe.pointerId) return;
+  swipe.deltaX = event.clientX - swipe.startX;
+  swipe.deltaY = event.clientY - swipe.startY;
+  applyDiscoverSwipeTransform(swipe.topCard, swipe.deltaX, swipe.deltaY, swipe.cardWidth);
+}
+
+function endDiscoverSwipe(event) {
+  const swipe = state.discoverSwipe;
+  if (!swipe || event.pointerId !== swipe.pointerId) return;
+
+  const threshold = Math.max(120, swipe.cardWidth * 0.22);
+  if (swipe.deltaX <= -threshold) {
+    completeDiscoverSwipe("help");
+    return;
+  }
+  if (swipe.deltaX >= threshold) {
+    completeDiscoverSwipe("pass");
+    return;
+  }
+  resetDiscoverSwipeCard(swipe.topCard);
+  state.discoverSwipe = null;
+}
+
+function cancelDiscoverSwipe(event) {
+  const swipe = state.discoverSwipe;
+  if (!swipe || event.pointerId !== swipe.pointerId) return;
+  resetDiscoverSwipeCard(swipe.topCard);
+  state.discoverSwipe = null;
+}
+
+function applyDiscoverSwipeTransform(card, deltaX, deltaY, cardWidth) {
+  if (!card) return;
+  const rotation = Math.max(-18, Math.min(18, deltaX / 18));
+  const progress = Math.min(1, Math.abs(deltaX) / Math.max(cardWidth * 0.28, 1));
+  const travelY = deltaY * 0.18;
+  card.style.transform = `translate3d(${deltaX}px, ${travelY}px, 0) rotate(${rotation}deg)`;
+  card.style.setProperty("--swipe-progress", progress.toFixed(3));
+  card.dataset.swipeDirection = deltaX < -12 ? "left" : deltaX > 12 ? "right" : "";
+}
+
+function resetDiscoverSwipeCard(card) {
+  if (!card) return;
+  card.classList.remove("wish-deck-card-dragging", "wish-deck-card-exit-left", "wish-deck-card-exit-right");
+  card.style.transform = "";
+  card.style.removeProperty("--swipe-progress");
+  card.dataset.swipeDirection = "";
+}
+
+async function completeDiscoverSwipe(direction) {
+  const swipe = state.discoverSwipe;
+  const card = swipe?.topCard || getTopDiscoverCard();
+  const topWish = getDiscoverQueue()[0];
+  if (!card || !topWish || state.discoverActionPending) {
+    state.discoverSwipe = null;
+    return;
+  }
+  if (direction === "help" && !requireAuth()) {
+    resetDiscoverSwipeCard(card);
+    state.discoverSwipe = null;
+    return;
+  }
+
+  state.discoverActionPending = true;
+  card.classList.remove("wish-deck-card-dragging");
+  card.classList.add(direction === "help" ? "wish-deck-card-exit-left" : "wish-deck-card-exit-right");
+  card.dataset.swipeDirection = direction === "help" ? "left" : "right";
+  state.discoverSwipe = null;
+
+  window.setTimeout(async () => {
+    try {
+      if (direction === "pass") {
+        state.passedWishIds.push(topWish.id);
+        savePassedWishIds();
+        renderDiscoverDeck();
+      } else {
+        const success = await requestWishHelp(topWish.id);
+        if (!success) {
+          renderDiscoverDeck();
+        }
+      }
+    } finally {
+      state.discoverActionPending = false;
+    }
+  }, 220);
 }
 
 function renderIncomingRequests() {
@@ -2282,17 +2402,12 @@ async function useDemoAccount(email, password) {
 }
 
 function passTopDiscoverWish() {
-  const topWish = getDiscoverQueue()[0];
-  if (!topWish) return;
-  state.passedWishIds.push(topWish.id);
-  savePassedWishIds();
-  renderDiscoverDeck();
+  completeDiscoverSwipe("pass");
 }
 
 function requestTopDiscoverWish() {
-  const topWish = getDiscoverQueue()[0];
-  if (!topWish) return;
-  requestWishHelp(topWish.id);
+  if (!requireAuth()) return;
+  completeDiscoverSwipe("help");
 }
 
 function handleAction(event) {

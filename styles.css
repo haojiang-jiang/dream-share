@@ -1166,6 +1166,9 @@ html[lang^="zh"] .discover-hero-title {
 .wish-deck-card {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   padding: 28px;
   border-radius: 30px;
   overflow: hidden;
@@ -1174,9 +1177,21 @@ html[lang^="zh"] .discover-hero-title {
     linear-gradient(135deg, #27465a 0%, #2a3445 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: none;
+  transform-origin: center 86%;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease, box-shadow 220ms ease;
+  will-change: transform, opacity;
+  user-select: none;
+  touch-action: none;
+  z-index: 3;
+  box-shadow: 0 24px 46px rgba(0, 0, 0, 0.18);
+}
+
+.wish-deck-card[data-depth="0"] {
+  z-index: 3;
 }
 
 .wish-deck-card[data-depth="1"] {
+  z-index: 2;
   transform: translateY(16px) scale(0.975);
   background:
     linear-gradient(180deg, #223240 0%, #192533 100%),
@@ -1185,6 +1200,7 @@ html[lang^="zh"] .discover-hero-title {
 }
 
 .wish-deck-card[data-depth="2"] {
+  z-index: 1;
   transform: translateY(30px) scale(0.95);
   background:
     linear-gradient(180deg, #1b2834 0%, #141e29 100%),
@@ -1198,16 +1214,88 @@ html[lang^="zh"] .discover-hero-title {
   pointer-events: none;
 }
 
+.wish-deck-card-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.wish-deck-card-exit-left {
+  transform: translate3d(-120%, 4%, 0) rotate(-18deg) !important;
+  opacity: 0;
+}
+
+.wish-deck-card-exit-right {
+  transform: translate3d(120%, 4%, 0) rotate(18deg) !important;
+  opacity: 0;
+}
+
 .wish-deck-card h3 {
   font-size: clamp(2.2rem, 4.6vw, 3.2rem);
   line-height: 1;
   max-width: 10ch;
 }
 
+.wish-deck-card .wish-card-head {
+  position: relative;
+  z-index: 1;
+}
+
+.wish-deck-card .wish-card-meta {
+  position: relative;
+  z-index: 1;
+}
+
 .wish-deck-body {
   margin-top: 18px;
   color: #e7eef3;
   line-height: 1.75;
+  position: relative;
+  z-index: 1;
+}
+
+.wish-deck-card .wish-card-footer,
+.wish-deck-card .wish-card-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.wish-deck-card .wish-card-actions {
+  margin-top: auto;
+}
+
+.discover-swipe-hint {
+  position: absolute;
+  top: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.94);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.discover-swipe-help {
+  left: 22px;
+  color: #05131b;
+  background: rgba(141, 226, 189, 0.96);
+}
+
+.discover-swipe-pass {
+  right: 22px;
+  color: #fff6f1;
+  background: rgba(255, 132, 89, 0.92);
+}
+
+.wish-deck-card[data-swipe-direction="left"] .discover-swipe-help,
+.wish-deck-card[data-swipe-direction="right"] .discover-swipe-pass {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .deck-actions {
