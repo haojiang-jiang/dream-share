@@ -548,7 +548,7 @@ html[lang^="zh"] .discover-hero-title {
 }
 
 .map-panel {
-  padding: 6px 6px 8px;
+  padding: 6px;
   border-radius: 30px;
   border: 1px solid rgba(118, 202, 219, 0.1);
   background:
